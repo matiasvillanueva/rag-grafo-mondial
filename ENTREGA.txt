@@ -1,0 +1,47 @@
+Trabajo práctico — RAG sobre un grafo de conocimiento (Mondial Europe)
+Maestría en Explotación de Datos y Gestión del Conocimiento — Universidad Austral
+
+================================================================================
+INTEGRANTES
+================================================================================
+
+- Villanueva Matias
+- Paberolis Ignacio
+- Del Bo Tomas
+
+================================================================================
+VIDEO (YouTube)
+================================================================================
+
+[Completar: pegar aquí la URL pública del video en YouTube]
+
+
+================================================================================
+REPOSITORIO (Github)
+================================================================================
+
+[Completar: pegar aquí la URL pública en GH]
+
+================================================================================
+ARCHIVOS DE LOS GRAFOS
+================================================================================
+
+Los grafos están en la carpeta data/. Hay dos grafos, cada uno en RDF/XML
+(el que carga la aplicación) y en Notation3 (versión legible).
+
+1) Grafo de instancias — subconjunto Europa de Mondial
+   - data/mondial-europe.rdf
+   - data/mondial-europe.n3
+   Contenido: países, ciudades, ríos, lagos, fronteras, población, superficie, etc.
+
+2) Grafo de ontología — esquema RDFS/OWL
+   - data/mondial-meta.rdf
+   - data/mondial-meta.n3
+   Contenido: clases (Country, City, River, Lake, …) y propiedades
+   (name, capital, neighbor, population, area, length, …).
+
+Prefijo del vocabulario:
+  PREFIX mon: <http://www.semwebtech.org/mondial/10/meta#>
+
+Fuente: MONDIAL, Universidad de Göttingen
+  http://www.dbis.informatik.uni-goettingen.de/Mondial/

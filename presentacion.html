@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RAG sobre un grafo de conocimiento — Mondial Europe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #12150f;
+      --panel: #1b2118;
+      --ink: #f3efe4;
+      --muted: #b4b6a8;
+      --line: #3a4033;
+      --gold: #c9a227;
+      --gold-dim: #8a7020;
+      --leaf: #7ea36b;
+      --water: #6a9caf;
+      --rose: #c9846a;
+      --code: #0e110c;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      background: var(--bg); color: var(--ink);
+      font-family: "Source Sans 3", system-ui, sans-serif;
+    }
+    .deck { height: 100%; }
+    .slide {
+      display: none;
+      height: 100%;
+      padding: 2.2rem 3rem 6.6rem;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+    .slide.active { display: flex; }
+    .top {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 1.4rem;
+    }
+    .seg {
+      border: 1px solid var(--line); padding: 0.2rem 0.55rem;
+      color: var(--gold);
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 650; font-size: 2.55rem; line-height: 1.15;
+      margin: 0 0 0.85rem;
+    }
+    h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 650; font-size: 2rem; line-height: 1.2;
+      margin: 0 0 1rem;
+    }
+    .lede { font-size: 1.2rem; color: var(--muted); max-width: 44rem; }
+    .grid { display: grid; gap: 0.85rem; }
+    .cols-2 { grid-template-columns: 1fr 1fr; }
+    .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 0.95rem 1.05rem;
+    }
+    .card h3 {
+      margin: 0 0 0.45rem; font-size: 0.95rem;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold);
+    }
+    .card p, .card li { color: var(--ink); }
+    ul { margin: 0; padding-left: 1.15rem; }
+    li { margin: 0.28rem 0; }
+    .kicker { color: var(--gold); font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; font-size: 0.82rem; margin-bottom: 0.55rem; }
+    .meta { color: var(--muted); font-size: 1.05rem; margin: 0.25rem 0; }
+    pre, code { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+    pre {
+      background: var(--code); border: 1px solid var(--line);
+      padding: 0.85rem 1rem; overflow: auto;
+      font-size: 0.78rem; line-height: 1.45; color: #e6e1d1;
+      margin: 0;
+    }
+    .triple { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; margin: 0.35rem 0; }
+    .chip {
+      padding: 0.22rem 0.5rem; border: 1px solid var(--line); font-size: 0.92rem;
+    }
+    .s { border-color: #5d7a4e; color: #c5ddb6; }
+    .p { border-color: var(--gold-dim); color: #ead48a; }
+    .o { border-color: #4e7380; color: #b9d7e2; }
+    .flow {
+      display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+      font-size: 0.95rem;
+    }
+    .flow .box {
+      background: var(--panel); border: 1px solid var(--line);
+      padding: 0.55rem 0.7rem; min-width: 7.2rem; text-align: center;
+    }
+    .arrow { color: var(--gold); font-size: 1.2rem; }
+    .script {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      background: #0c0e0a; border-top: 1px solid var(--line);
+      padding: 0.7rem 3rem 0.85rem;
+      max-height: 28vh; overflow: auto;
+    }
+    .script strong {
+      color: var(--gold); font-size: 0.72rem; letter-spacing: 0.1em;
+      text-transform: uppercase; display: block; margin-bottom: 0.25rem;
+    }
+    .script p { margin: 0; color: #d7d3c6; font-size: 0.98rem; line-height: 1.4; }
+    .nav {
+      position: fixed; right: 1.2rem; bottom: 31vh;
+      display: flex; gap: 0.4rem;
+    }
+    button {
+      background: var(--panel); color: var(--ink);
+      border: 1px solid var(--line); padding: 0.35rem 0.65rem;
+      cursor: pointer; font: inherit;
+    }
+    button:hover { border-color: var(--gold); }
+    .help { position: fixed; left: 1.2rem; bottom: 31vh; color: var(--muted); font-size: 0.75rem; }
+    .title-slide { justify-content: center; padding-bottom: 8rem; }
+    .big-q { font-family: Fraunces, Georgia, serif; font-size: 1.65rem; margin: 0 0 0.8rem; }
+    .ans { color: var(--leaf); font-weight: 700; }
+    .warn { color: var(--rose); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { text-align: left; padding: 0.35rem 0.45rem; border-bottom: 1px solid var(--line); }
+    th { color: var(--gold); font-weight: 600; font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .stat { font-family: Fraunces, Georgia, serif; font-size: 1.8rem; color: var(--gold); }
+    .small { font-size: 0.88rem; color: var(--muted); }
+    @media print {
+      .nav, .help { display: none; }
+      .slide { display: flex; page-break-after: always; height: 100vh; }
+      .script { position: static; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <!-- 1 -->
+    <section class="slide title-slide active" data-seg="Inicio">
+      <div class="kicker">Trabajo práctico · 15 minutos · 16 slides</div>
+      <h1>RAG sobre un grafo<br>de conocimiento</h1>
+      <p class="lede">Asistente geográfico de Europa. La base de referencia no es un corpus de texto: es el grafo RDF Mondial. El modelo no responde de memoria; escribe SPARQL y habla solo con las filas recuperadas.</p>
+      <p class="meta" style="margin-top:1.4rem">Maestría en Explotación de Datos y Gestión del Conocimiento — Universidad Austral</p>
+      <p class="meta">Villanueva Matías · Paberolis Ignacio · Del Bo Tomás</p>
+      <div class="script" data-text="Buenas. Somos Matías, Ignacio y Tomás. En quince minutos vamos a mostrar un asistente de geografía europea cuya fuente de verdad es un grafo RDF, no Wikipedia ni la memoria del modelo. El patrón es RAG: primero se recupera evidencia, después se genera la respuesta. Acá recuperar significa ejecutar SPARQL contra Mondial Europe."></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide" data-seg="Inicio">
+      <div class="top"><span class="seg">Agenda</span><span>02 / 16</span></div>
+      <h2>Tres segmentos, cinco minutos cada uno</h2>
+      <div class="grid cols-3">
+        <div class="card">
+          <h3>1 · Grafos y ontología</h3>
+          <p>Qué es un grafo de conocimiento, cómo se escribe un triple RDF y qué clases y propiedades define la ontología Mondial.</p>
+        </div>
+        <div class="card">
+          <h3>2 · El RAG</h3>
+          <p>En qué se diferencia de un RAG de documentos, cómo está armada la arquitectura y qué hace el agente antes de hablar.</p>
+        </div>
+        <div class="card">
+          <h3>3 · Queries y cierre</h3>
+          <p>Las cuatro preguntas del README y, al final, conclusiones: nombres, plantillas SPARQL, UI auditable y evaluación.</p>
+        </div>
+      </div>
+      <div class="script" data-text="La charla tiene tres bloques. Primero el modelo de datos: grafo, RDF y ontología. Después el sistema: por qué esto es RAG y cómo el agente LangChain usa una tool SPARQL. Seguimos con las cuatro queries de prueba y cerramos con conclusiones: cómo mejorar nombres, la generación de SPARQL y la auditoría de cada respuesta."></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide" data-seg="Segmento 1">
+      <div class="top"><span class="seg">Segmento 1 · Grafos y ontología</span><span>03 / 16</span></div>
+      <h2>Un grafo de conocimiento no es una tabla ni un PDF</h2>
+      <div class="grid cols-3">
+        <div class="card">
+          <h3>Nodos</h3>
+          <p>Entidades del mundo: Austria, Wien, el Rin, el Danubio. Cada una tiene un IRI, no solo un nombre.</p>
+        </div>
+        <div class="card">
+          <h3>Aristas tipadas</h3>
+          <p>Relaciones con semántica: <code>capital</code>, <code>neighbor</code>, <code>locatedIn</code>, <code>length</code>. No son “links” genéricos.</p>
+        </div>
+        <div class="card">
+          <h3>Preguntas estructurales</h3>
+          <p>Se puede pedir “quién limita con X” o “ordená por población”. Eso no es buscar texto parecido.</p>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:1rem">La semántica viaja con el dato. Austria no es un párrafo: es un <code>Country</code> unido a una <code>City</code> por <code>capital</code>.</p>
+      <div class="script" data-text="Un grafo de conocimiento representa el dominio como entidades conectadas por relaciones con nombre. Austria no es una fila de Excel ni un chunk de Wikipedia: es un nodo de tipo Country, ligado a Wien por capital, a Alemania por neighbor y a 8,4 millones por population. Eso permite preguntar por estructura —vecinos, rankings, capitales— en vez de por palabras que se parecen."></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide" data-seg="Segmento 1">
+      <div class="top"><span class="seg">Segmento 1 · Grafos y ontología</span><span>04 / 16</span></div>
+      <h2>RDF: todo es un triple sujeto–predicado–objeto</h2>
+      <div class="grid cols-2">
+        <div>
+          <div class="triple"><span class="chip s">sujeto</span><span class="chip p">predicado</span><span class="chip o">objeto</span></div>
+          <div class="triple"><span class="chip s">&lt;countries/A/&gt;</span><span class="chip p">rdf:type</span><span class="chip o">mon:Country</span></div>
+          <div class="triple"><span class="chip s">&lt;countries/A/&gt;</span><span class="chip p">mon:name</span><span class="chip o">"Austria"</span></div>
+          <div class="triple"><span class="chip s">&lt;countries/A/&gt;</span><span class="chip p">mon:capital</span><span class="chip o">&lt;.../Wien/&gt;</span></div>
+          <div class="triple"><span class="chip s">&lt;countries/A/&gt;</span><span class="chip p">mon:population</span><span class="chip o">8401940</span></div>
+        </div>
+        <div class="card">
+          <h3>Prefijo del vocabulario</h3>
+          <pre>PREFIX mon:
+  &lt;http://www.semwebtech.org/mondial/10/meta#&gt;</pre>
+          <p style="margin:0.7rem 0 0">En memoria hay <strong>73.051 triples</strong>: el subconjunto Europa de Mondial más la ontología. SPARQL recorre esos triples; no hay índice vectorial.</p>
+        </div>
+      </div>
+      <div class="script" data-text="RDF guarda cada hecho como un triple. El sujeto es la entidad, el predicado es la propiedad, el objeto es otra entidad o un literal. El prefijo mon apunta a la ontología Mondial. Nuestro grafo en rdflib junta unos setenta y tres mil triples. Cuando el agente pregunta por la capital de Austria, no busca la palabra capital: encaja el patrón Country–name–Austria y sigue el arco capital hasta el nombre de la ciudad."></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide" data-seg="Segmento 1">
+      <div class="top"><span class="seg">Segmento 1 · Grafos y ontología</span><span>05 / 16</span></div>
+      <h2>La ontología dice qué tipos de cosas existen</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Clases que usa el agente</h3>
+          <ul>
+            <li><code>mon:Country</code> — país</li>
+            <li><code>mon:City</code> — ciudad (política y geográfica)</li>
+            <li><code>mon:Province</code> — provincia / estado</li>
+            <li><code>mon:River</code>, <code>mon:Lake</code>, <code>mon:Sea</code> — agua</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Jerarquía (simplificada)</h3>
+          <ul>
+            <li><code>MondialThing</code> es la raíz</li>
+            <li><code>PoliticalThing</code> ∪ <code>GeographicalThing</code></li>
+            <li><code>Water</code> = River ⊎ Lake ⊎ Sea</li>
+            <li>Un río es también <code>Line</code>: por eso tiene <code>length</code></li>
+          </ul>
+        </div>
+      </div>
+      <p class="small" style="margin-top:0.8rem">Definida en <code>data/mondial-meta.rdf</code> con RDFS/OWL: <code>owl:Class</code>, <code>rdfs:subClassOf</code>, uniones disjuntas.</p>
+      <div class="script" data-text="La ontología es el contrato del grafo: declara las clases y cómo se relacionan. Country, City, River, Lake, Sea, Province. Una ciudad es a la vez cosa política y geográfica. Un río entra en Water y en Line; por eso tiene largo. El agente solo puede preguntar por estas clases. Si inventara un tipo mon:LongestRiver, el grafo no devolvería nada. Eso es usar una base semántica, no un diccionario de strings."></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide" data-seg="Segmento 1">
+      <div class="top"><span class="seg">Segmento 1 · Grafos y ontología</span><span>06 / 16</span></div>
+      <h2>Las propiedades son el vocabulario de las preguntas</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Object properties — unen entidades</h3>
+          <ul>
+            <li><code>mon:capital</code> — Country → City (funcional)</li>
+            <li><code>mon:isCapitalOf</code> — inversa</li>
+            <li><code>mon:neighbor</code> — Country ↔ Country (simétrica)</li>
+            <li><code>mon:cityIn</code>, <code>mon:locatedIn</code>, <code>mon:flowsInto</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Datatype properties — literales</h3>
+          <ul>
+            <li><code>mon:name</code> — string (a menudo exónimo alemán)</li>
+            <li><code>mon:population</code>, <code>mon:area</code></li>
+            <li><code>mon:length</code> — largo de un río</li>
+            <li>Sirven para <code>ORDER BY</code> y rankings</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:0.9rem">Detalle práctico: Mondial nombra <span class="ans">Wien</span>, <span class="ans">Donau</span>, <span class="ans">Rhein</span>. Si el SPARQL busca "Vienna" o "Danube", vuelve vacío.</p>
+      <div class="script" data-text="Las propiedades son el vocabulario de las preguntas. capital va de país a ciudad y es funcional: un país tiene una capital. neighbor es simétrica: si Alemania limita con Austria, el arco inverso también está. population y length son números: sirven para ORDER BY. El nombre es el literal que hay que acertar. Mondial usa a menudo el exónimo alemán: Wien, Donau, Rhein. Eso va a importar en las queries."></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide" data-seg="Segmento 1">
+      <div class="top"><span class="seg">Segmento 1 · Grafos y ontología</span><span>07 / 16</span></div>
+      <h2>Dos grafos en <code>data/</code>: instancias + esquema</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>mondial-europe — instancias</h3>
+          <p><span class="stat">55</span> países &nbsp; <span class="stat">1.109</span> ciudades</p>
+          <p><span class="stat">303</span> ríos &nbsp; <span class="stat">72</span> lagos</p>
+          <p class="small">También en Notation3, más legible. La app carga el RDF/XML.</p>
+        </div>
+        <div class="card">
+          <h3>mondial-meta — ontología</h3>
+          <p>Clases y propiedades RDFS/OWL. Sin este archivo sabríamos que hay triples; con él sabemos que un <code>Country</code> tiene <code>capital</code> de tipo <code>City</code>.</p>
+          <p class="small">Fuente: MONDIAL, Universidad de Göttingen.</p>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:0.9rem"><code>load_graph()</code> parsea los dos <code>.rdf</code> en un único grafo rdflib en memoria.</p>
+      <div class="script" data-text="En el repositorio hay dos grafos, cada uno en RDF/XML y en Notation3. El de instancias es el recorte Europa: cincuenta y cinco países, más de mil ciudades, trescientos ríos. El meta es el esquema. load_graph los fusiona al arrancar la API. A partir de ahí no hay base SQL ni embeddings: toda pregunta pasa por ese grafo. Con esto cerramos el segmento de datos y pasamos al RAG."></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide" data-seg="Segmento 2">
+      <div class="top"><span class="seg">Segmento 2 · RAG</span><span>08 / 16</span></div>
+      <h2>RAG: recuperar evidencia y recién después generar</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>RAG clásico de documentos</h3>
+          <ul>
+            <li>Partís texto en chunks</li>
+            <li>Embeddings + similitud</li>
+            <li>El LLM resume los pasajes</li>
+            <li>Sirve para manuales y PDFs</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Este RAG</h3>
+          <ul>
+            <li>La base de referencia es el grafo</li>
+            <li>Recuperar = <code>SELECT</code> SPARQL</li>
+            <li>El LLM redacta en español con esas filas</li>
+            <li>Si el grafo calla, no se inventa la capital</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:0.9rem">Patrón: <strong>pregunta → recuperación (tool) → generación</strong>. El modelo no es la fuente; es el traductor a SPARQL y a español.</p>
+      <div class="script" data-text="RAG es Retrieval-Augmented Generation: el modelo no habla de memoria, primero trae evidencia. En el RAG de documentos esa evidencia son chunks parecidos por embedding. Acá la evidencia son filas de un SELECT. Cumple el enunciado de tres modos: la base es un grafo, el retrieval aprovecha el esquema semántico, y la recuperación está encapsulada en una tool que el agente tiene que invocar antes de responder."></div>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide" data-seg="Segmento 2">
+      <div class="top"><span class="seg">Segmento 2 · RAG</span><span>09 / 16</span></div>
+      <h2>Arquitectura: cuatro contenedores, una tool</h2>
+      <div class="flow" style="margin: 0.4rem 0 1.1rem;">
+        <div class="box">Usuario</div><span class="arrow">→</span>
+        <div class="box">UI Streamlit<br><span class="small">:8501</span></div><span class="arrow">→</span>
+        <div class="box">API FastAPI<br><span class="small">POST /chat</span></div><span class="arrow">→</span>
+        <div class="box">Agente ReAct<br><span class="small">LangGraph</span></div>
+      </div>
+      <div class="flow">
+        <div class="box">Agente</div><span class="arrow">→</span>
+        <div class="box">tool sparql_query<br><span class="small">rdflib en memoria</span></div>
+        <span style="width:1.5rem"></span>
+        <div class="box">Agente</div><span class="arrow">→</span>
+        <div class="box">Gemini<br><span class="small">GEMINI_API_KEY</span></div>
+      </div>
+      <p class="lede" style="margin-top:1rem">No hay vector store. El grafo se carga al iniciar la API. La UI solo pega JSON a <code>/chat</code>.</p>
+      <div class="script" data-text="El usuario escribe en Streamlit. La UI llama a POST /chat. FastAPI delega en answer(). El agente es un ReAct de LangGraph con Gemini y una sola herramienta, sparql_query. Docker Compose pasa GEMINI_API_KEY a la API. El grafo nunca sale de la memoria del proceso de la API."></div>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide" data-seg="Segmento 2">
+      <div class="top"><span class="seg">Segmento 2 · RAG</span><span>10 / 16</span></div>
+      <h2>Flujo de una pregunta</h2>
+      <div class="grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.7rem;">
+        <div class="card"><h3>1. Prompt</h3><p>Clases, propiedades, plantillas SPARQL y tabla de nombres Mondial. Regla: consultá antes de responder.</p></div>
+        <div class="card"><h3>2. SELECT</h3><p>El modelo escribe un <code>SELECT</code> que empieza con <code>PREFIX mon:</code>. Un triple = tres términos.</p></div>
+        <div class="card"><h3>3. Tool</h3><p>Normaliza el PREFIX, reescribe aliases (Alemania→Germany, Danubio→Donau) y ejecuta.</p></div>
+        <div class="card"><h3>4. Respuesta</h3><p>Hasta 50 filas. El modelo redacta en español solo con eso. Si hay cero filas, reintenta.</p></div>
+      </div>
+      <p class="small" style="margin-top:0.9rem">Si SPARQL falla o viene vacío, la tool devuelve una pista con las plantillas de vecinos, ríos y rankings — no un silencio mudo.</p>
+      <div class="script" data-text="Este es el corazón del RAG. El system prompt obliga a ejecutar la tool y da plantillas fijas para vecinos, ubicación de un río y ranking por largo. La tool no es un pasamanos tonto: corrige el PREFIX si faltan los ángulos y canjea literales al nombre canónico del grafo. El techo es cincuenta filas. La respuesta final tiene que ser breve, en español, y nunca volcar el JSON de la tool-call."></div>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide" data-seg="Segmento 2">
+      <div class="top"><span class="seg">Segmento 2 · RAG</span><span>11 / 16</span></div>
+      <h2>Por qué SPARQL y no un embedding</h2>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Lo que SPARQL resuelve bien</h3>
+          <ul>
+            <li>Joins: países que <code>neighbor</code> a Alemania</li>
+            <li>Rankings: <code>ORDER BY DESC(?pop)</code></li>
+            <li>Tipado: solo <code>a mon:River</code></li>
+            <li>Cero hecho inventado si el grafo no trajo filas</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>El costo</h3>
+          <ul>
+            <li>El LLM tiene que escribir SPARQL válido</li>
+            <li>Los literales de <code>name</code> son frágiles</li>
+            <li>Por eso: plantillas, aliases y pistas de reintento</li>
+            <li>Debug: descomentar el <code>print</code> en <code>graph.py</code></li>
+          </ul>
+        </div>
+      </div>
+      <div class="script" data-text="Un embedding no distingue bien «países que limitan con Alemania» de un párrafo que menciona Alemania. SPARQL sí: es un join por neighbor. Un ranking de ríos es ORDER BY length, no un chunk que diga «largo». El precio es que el modelo tiene que producir una consulta correcta. Por eso el prompt trae plantillas y la tool reescribe nombres. Si quieren ver el SPARQL real, descomentan el print en sparql_query y miran los logs de la API."></div>
+    </section>
+
+    <!-- 12 -->
+    <section class="slide" data-seg="Segmento 3">
+      <div class="top"><span class="seg">Segmento 3 · Queries de prueba</span><span>12 / 16</span></div>
+      <p class="big-q">«¿Cuál es la capital de Austria?»</p>
+      <div class="grid cols-2">
+        <pre>PREFIX mon: &lt;http://www.semwebtech.org/mondial/10/meta#&gt;
+SELECT ?cap WHERE {
+  ?c a mon:Country ;
+     mon:name "Austria" ;
+     mon:capital ?city .
+  ?city mon:name ?cap .
+}</pre>
+        <div class="card">
+          <h3>Qué tiene que pasar</h3>
+          <p>El agente traduce la pregunta a un patrón <code>Country</code> → <code>capital</code> → <code>name</code>.</p>
+          <p>Fila del grafo: <span class="ans">Wien</span>.</p>
+          <p class="small">Respuesta esperada en español: la capital de Austria es Viena (Wien en Mondial). El modelo no debería decir Vienna de memoria si la tool no corrió.</p>
+        </div>
+      </div>
+      <div class="script" data-text="Primera query del README. Es el caso más simple: una propiedad funcional. El SELECT busca el Country cuyo name es Austria, sigue capital hasta la ciudad y pide el name. El grafo devuelve Wien, no Vienna. En la demo, escriban la pregunta en el chat y, si tienen el print de debug, muestren el SPARQL en los logs. La respuesta tiene que citar Viena a partir de esa fila, no del conocimiento previo del modelo."></div>
+    </section>
+
+    <!-- 13 -->
+    <section class="slide" data-seg="Segmento 3">
+      <div class="top"><span class="seg">Segmento 3 · Queries de prueba</span><span>13 / 16</span></div>
+      <p class="big-q">«Nombrame 5 países que limitan con Alemania.»</p>
+      <div class="grid cols-2">
+        <pre>PREFIX mon: &lt;http://www.semwebtech.org/mondial/10/meta#&gt;
+SELECT ?name WHERE {
+  ?c a mon:Country ; mon:name "Germany" .
+  ?n mon:neighbor ?c ; mon:name ?name .
+} LIMIT 5</pre>
+        <div class="card">
+          <h3>El grafo tiene 9 vecinos</h3>
+          <p>Netherlands, Belgium, Luxembourg, Czech Republic, Poland, France, Denmark, Austria, Switzerland.</p>
+          <p>Plantilla del prompt: usar <strong>solo</strong> <code>mon:neighbor</code>. No mezclar <code>cityIn</code> ni <code>isCapitalOf</code>.</p>
+          <p class="small">La tool reescribe "Alemania" → "Germany" si el modelo se olvida de traducir.</p>
+        </div>
+      </div>
+      <div class="script" data-text="Segunda query: una relación simétrica. El prompt prohíbe mezclar otras propiedades y fija esta plantilla. Pedimos LIMIT 5 porque la pregunta pide cinco; el grafo conoce nueve. Ojo al literal: Germany, no Alemania. Si el modelo escribe Alemania entre comillas, _rewrite_name_literals lo corrige. En la oral, elijan cinco de la lista y aclaren que el dato sale del arco neighbor, no de un mapa memorizado."></div>
+    </section>
+
+    <!-- 14 -->
+    <section class="slide" data-seg="Segmento 3">
+      <div class="top"><span class="seg">Segmento 3 · Queries de prueba</span><span>14 / 16</span></div>
+      <p class="big-q">«¿Qué país europeo tiene mayor población?»</p>
+      <div class="grid cols-2">
+        <pre>PREFIX mon: &lt;http://www.semwebtech.org/mondial/10/meta#&gt;
+SELECT ?name ?pop WHERE {
+  ?c a mon:Country ;
+     mon:name ?name ;
+     mon:population ?pop .
+} ORDER BY DESC(?pop) LIMIT 1</pre>
+        <div class="card">
+          <h3>Top 5 en este grafo</h3>
+          <table>
+            <tr><th>País</th><th>Población</th></tr>
+            <tr><td>Russia</td><td>144.699.673</td></tr>
+            <tr><td>Turkey</td><td>84.680.273</td></tr>
+            <tr><td>Germany</td><td>82.521.653</td></tr>
+            <tr><td>United Kingdom</td><td>66.980.000</td></tr>
+            <tr><td>France</td><td>64.300.821</td></tr>
+          </table>
+          <p class="small warn" style="margin-top:0.6rem">Mondial Europe incluye Rusia y Turquía. La respuesta fiel al grafo es Rusia, no Alemania.</p>
+        </div>
+      </div>
+      <div class="script" data-text="Tercera query: un ranking. No se busca un país llamado «más poblado»; se ordena mon:population. El grafo, tal como está cargado, da Rusia con ciento cuarenta y cuatro millones. Turquía queda segunda y Alemania tercera. Es un buen momento para subrayar el contrato del RAG: respondemos lo que hay en Mondial Europe, aunque alguien espere «Alemania» por una definición más estrecha de Europa. Si el modelo alucina Alemania sin consultar, el TP está mal."></div>
+    </section>
+
+    <!-- 15 -->
+    <section class="slide" data-seg="Segmento 3">
+      <div class="top"><span class="seg">Segmento 3 · Queries de prueba</span><span>15 / 16</span></div>
+      <p class="big-q">«¿Cuáles son los ríos más largos?»</p>
+      <div class="grid cols-2">
+        <pre>PREFIX mon: &lt;http://www.semwebtech.org/mondial/10/meta#&gt;
+SELECT ?name ?len WHERE {
+  ?r a mon:River ;
+     mon:name ?name ;
+     mon:length ?len .
+} ORDER BY DESC(?len) LIMIT 10</pre>
+        <div class="card">
+          <h3>El grafo responde (km)</h3>
+          <p>Lena 4400 · Irtysh 4248 · Yenissey 4092 · Ob 3650 · <strong>Volga 3531</strong> · … · <strong>Donau 2845</strong></p>
+          <p class="small">Rusia entra en el recorte: aparecen ríos siberianos. El Danubio en Mondial se llama Donau. El prompt dice explícitamente: no busques un <code>mon:name "longest"</code>.</p>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:0.7rem">Pregunta en español → SPARQL sobre el esquema → filas → frase. El grafo es la fuente; el LLM solo traduce.</p>
+      <div class="script" data-text="Última query. El error típico del modelo es filtrar por el nombre longest. La plantilla ordena por length. Como Mondial Europe incluye Rusia, el ranking abre con Lena, Irtysh, Yeniséi y Ob; el Volga es el europeo «clásico» más largo y el Danubio aparece como Donau. El asistente no recita geografía de entrenamiento: ejecuta un SELECT y habla con esas filas. Pasamos a cómo se podría mejorar."></div>
+    </section>
+
+    <!-- 16 -->
+    <section class="slide" data-seg="Cierre">
+      <div class="top"><span class="seg">Conclusiones · cómo mejorar</span><span>16 / 16</span></div>
+      <h2>El RAG funciona; el cuello de botella es el SPARQL</h2>
+      <div class="grid cols-3">
+        <div class="card">
+          <h3>1 · Nombres y alcance</h3>
+          <ul>
+            <li>Usar <code>othername</code> / <code>localname</code>, no solo un diccionario de aliases</li>
+            <li>Filtro de continente: ríos «europeos» vía <code>locatedIn</code>, no todo lo de Rusia</li>
+            <li>Alinear literales con Wikidata o un léxico ES→Mondial</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>2 · Agente y consultas</h3>
+          <ul>
+            <li>Clasificar intención y rellenar plantillas, en vez de SPARQL libre</li>
+            <li>Inyectar el esquema al vuelo (clases/props), no un prompt fijo</li>
+            <li>Validar el SELECT contra la ontología antes de ejecutarlo</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>3 · Producto y evaluación</h3>
+          <ul>
+            <li>Mostrar el SPARQL y las filas en la UI</li>
+            <li>Set dorado de preguntas + métrica de acierto</li>
+            <li>Triplestore (Fuseki) si el grafo crece; memoria para follow-ups</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:0.85rem">Hoy el sistema demuestra el patrón. El siguiente paso es que falle menos al escribir la consulta y que se pueda auditar cada respuesta.</p>
+      <div class="script" data-text="Cierre. El TP demuestra el patrón: el grafo es la fuente y el LLM solo traduce. Dónde mejorar. Uno: los nombres. El diccionario de aliases es frágil; Mondial ya tiene othername y localname, y convendría un filtro de continente para que «ríos más largos» no traiga el Lena. Dos: el agente. En vez de SPARQL libre, clasificar la intención, rellenar una plantilla y validar contra la ontología; el prompt fijo no escala si crece el esquema. Tres: producto. Mostrar el SELECT en la UI, un set dorado de preguntas para medir acierto, y un triplestore si el grafo deja de entrar en memoria. Gracias, ¿preguntas?"></div>
+    </section>
+  </div>
+
+  <p class="help">← → o espacio · F pantalla completa · P imprimir / PDF</p>
+  <div class="nav">
+    <button type="button" id="prev">←</button>
+    <button type="button" id="next">→</button>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    let i = 0;
+    slides.forEach((s) => {
+      const box = s.querySelector(".script");
+      if (box && box.dataset.text) box.innerHTML = "<strong>Texto de la slide</strong><p>" + box.dataset.text + "</p>";
+    });
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    }
+    document.getElementById("prev").onclick = () => show(i - 1);
+    document.getElementById("next").onclick = () => show(i + 1);
+    document.addEventListener("keydown", (e) => {
+      if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(e.key)) { e.preventDefault(); show(i + 1); }
+      if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(i - 1); }
+      if (e.key === "Home") show(0);
+      if (e.key === "End") show(slides.length - 1);
+      if (e.key === "f" || e.key === "F") document.documentElement.requestFullscreen?.();
+    });
+  </script>
+</body>
+</html>

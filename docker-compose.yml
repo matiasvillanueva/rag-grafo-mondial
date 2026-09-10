@@ -1,0 +1,36 @@
+services:
+  api:
+    build: ./server
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL=${MODEL:-gemini-3.6-flash}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data:ro
+
+  ui:
+    build: ./ui
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+
+  # Servicio solo para desarrollo (Dev Container). No arranca en `docker compose up`.
+  dev:
+    image: mcr.microsoft.com/devcontainers/python:3.12
+    profiles: ["dev"]
+    command: sleep infinity
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:cached
+    environment:
+      - MODEL=${MODEL:-gemini-3.6-flash}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - DATA_DIR=/workspace/data
+      - API_URL=http://localhost:8000

@@ -1,0 +1,13 @@
+{
+  "name": "Mondial Europe RAG",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "pip install -r server/requirements.txt -r ui/requirements.txt",
+  "forwardPorts": [8000, 8501],
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  }
+}
