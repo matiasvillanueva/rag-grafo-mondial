@@ -33,7 +33,7 @@ Flujo: el usuario pregunta en la UI → la API llama al agente → el agente esc
 
 ## LLM: Gemini
 
-El agente usa **Gemini** (`gemini-3.6-flash` por defecto). Hace falta `GEMINI_API_KEY` o `GOOGLE_API_KEY`.
+El agente usa **Gemini** (`gemini-3.5-flash` por defecto, override con `MODEL` en `.env`). Hace falta `GEMINI_API_KEY` o `GOOGLE_API_KEY`.
 
 Copiá [`.env.example`](.env.example) a `.env` y pegá la key:
 
@@ -44,7 +44,7 @@ cp .env.example .env
 
 También sirve exportarla en la shell: `export GEMINI_API_KEY=tu_key`.
 
-Otro modelo: `MODEL=gemini-3-flash`. `GET /health` responde `llm` y `model`.
+Otro modelo: `MODEL=gemini-3.5-flash-lite`. `GET /health` responde `llm` y `model`.
 
 ## Requisitos
 
@@ -97,14 +97,7 @@ API_URL=http://localhost:8000 streamlit run app.py --server.port 8501 --server.a
 
 ## Debug: ver la consulta SPARQL
 
-En [`server/app/graph.py`](server/app/graph.py), dentro de `sparql_query`, hay una línea comentada:
-
-```python
-# DEBUG: descomentar para ver en los logs de la API la consulta SPARQL enviada al grafo.
-# print(query, flush=True)
-```
-
-Descomentar `print(query, flush=True)` y mirar los logs de la API (`docker compose logs -f api` o la consola de `uvicorn`) para ver el SPARQL que el modelo generó y ejecutó.
+En [`server/app/graph.py`](server/app/graph.py), dentro de `sparql_query`, se puede agregar un `print(query, flush=True)` y mirar la consola de `uvicorn` o `docker compose logs -f api`.
 
 ## Datos
 

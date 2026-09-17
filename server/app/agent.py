@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from .graph import MONDIAL_PREFIX, sparql_query
 
-DEFAULT_MODEL = "gemini-3.6-flash"
+DEFAULT_MODEL = "gemini-3.5-flash"
 
 
 def _load_env() -> None:
@@ -117,6 +117,7 @@ _llm = build_llm()
 
 
 NO_DATO = "No dispongo de ese dato en el grafo Mondial Europe."
+LLM_ERROR = "El modelo de Gemini no respondió. Probá de nuevo o cambiá MODEL en .env."
 
 
 def _message_text(content) -> str:
@@ -146,7 +147,11 @@ def _message_text(content) -> str:
 def answer(question: str) -> str:
     """Una llamada SPARQL: si hay filas, redacta; si no, falla."""
     messages = [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=question)]
-    first = _llm.bind_tools([sparql_query]).invoke(messages)
+
+    try:
+        first = _llm.bind_tools([sparql_query]).invoke(messages)
+    except Exception:
+        return LLM_ERROR
     messages.append(first)
 
     tool_calls = getattr(first, "tool_calls", None) or []
@@ -165,6 +170,8 @@ def answer(question: str) -> str:
     if not (isinstance(tool_result, str) and tool_result.startswith("ROWS:")):
         return NO_DATO
 
-    # Sin tools: el modelo no puede reintentar SPARQL.
-    final = _llm.invoke(messages)
+    try:
+        final = _llm.invoke(messages)
+    except Exception:
+        return LLM_ERROR
     return _message_text(final.content)

@@ -210,8 +210,6 @@ def sparql_query(query: str) -> str:
         } LIMIT 50
     """
     query = _rewrite_name_literals(_normalize_prefix(query))
-    # DEBUG: descomentar para ver en los logs de la API la consulta SPARQL enviada al grafo.
-    # print(query, flush=True)
     try:
         results = _graph.query(query)
     except Exception as exc:

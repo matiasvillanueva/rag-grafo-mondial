@@ -4,7 +4,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL=${MODEL:-gemini-3.6-flash}
+      - MODEL=${MODEL:-gemini-3.5-flash}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - DATA_DIR=/app/data
