@@ -1,10 +1,9 @@
-"""Agente LangChain (ReAct) que responde consultas geográficas usando la tool SPARQL."""
+"""Agente LangChain que responde consultas geográficas con una sola llamada SPARQL."""
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
-from langgraph.prebuilt import create_react_agent
 
 from .graph import MONDIAL_PREFIX, sparql_query
 
@@ -107,34 +106,17 @@ Reglas:
      ?r a mon:River ; mon:name ?name ; mon:length ?len .
    }} ORDER BY DESC(?len) LIMIT 10
 7. LIMIT: si piden "todos", usá LIMIT 50; si piden un número N, usá LIMIT N.
-8. Si la consulta devuelve 0 filas, reintentá con el nombre Mondial de las listas de arriba.
+8. Llamá a sparql_query una sola vez. No reintentes aunque vuelva vacío o con error.
    No inventes predicados. Para rankings usá ORDER BY, no un FILTER por nombre.
-9. No inventes datos. Si tras reintentar la tool devuelve NO_RESULTS o SPARQL_ERROR, respondé exactamente: "No dispongo de ese dato en el grafo Mondial Europe."
-10. Respondé en español, breve y claro, basándote únicamente en las filas (líneas bajo ROWS:). Nunca vuelques el JSON de las tool-calls. Si no hay ROWS, no completes con conocimiento propio.
+9. No inventes datos. Respondé únicamente con las filas (líneas bajo ROWS:).
+10. Respondé en español, breve y claro. Nunca vuelques el JSON de las tool-calls.
 """
 
 
-# Construye el agente ReAct (Gemini) con la tool SPARQL.
-def build_agent():
-    """Crea y devuelve el agente LangGraph configurado con el LLM y la tool."""
-    return create_react_agent(build_llm(), [sparql_query])
-
-
-_agent = build_agent()
+_llm = build_llm()
 
 
 NO_DATO = "No dispongo de ese dato en el grafo Mondial Europe."
-
-
-def _graph_had_rows(messages) -> bool:
-    """True solo si alguna llamada a sparql_query devolvió filas (prefijo ROWS:)."""
-    for msg in messages:
-        if not isinstance(msg, ToolMessage):
-            continue
-        text = _message_text(getattr(msg, "content", ""))
-        if text.startswith("ROWS:"):
-            return True
-    return False
 
 
 def _message_text(content) -> str:
@@ -162,10 +144,27 @@ def _message_text(content) -> str:
 
 # Punto de entrada usado por la API para responder una pregunta.
 def answer(question: str) -> str:
-    """Ejecuta el agente sobre la pregunta del usuario y devuelve el texto de la respuesta final."""
+    """Una llamada SPARQL: si hay filas, redacta; si no, falla."""
     messages = [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=question)]
-    result = _agent.invoke({"messages": messages})
-    msgs = result["messages"]
-    if not _graph_had_rows(msgs):
+    first = _llm.bind_tools([sparql_query]).invoke(messages)
+    messages.append(first)
+
+    tool_calls = getattr(first, "tool_calls", None) or []
+    if not tool_calls:
         return NO_DATO
-    return _message_text(msgs[-1].content)
+
+    tool_result = None
+    for i, tc in enumerate(tool_calls):
+        if i == 0:
+            tool_result = sparql_query.invoke(tc.get("args") or {})
+            content = tool_result
+        else:
+            content = "Ignorada: una sola consulta SPARQL por pregunta."
+        messages.append(ToolMessage(content=content, tool_call_id=tc["id"]))
+
+    if not (isinstance(tool_result, str) and tool_result.startswith("ROWS:")):
+        return NO_DATO
+
+    # Sin tools: el modelo no puede reintentar SPARQL.
+    final = _llm.invoke(messages)
+    return _message_text(final.content)

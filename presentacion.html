@@ -326,7 +326,7 @@
         <div class="box">Usuario</div><span class="arrow">→</span>
         <div class="box">UI Streamlit<br><span class="small">:8501</span></div><span class="arrow">→</span>
         <div class="box">API FastAPI<br><span class="small">POST /chat</span></div><span class="arrow">→</span>
-        <div class="box">Agente ReAct<br><span class="small">LangGraph</span></div>
+        <div class="box">Agente<br><span class="small">LangChain + Gemini</span></div>
       </div>
       <div class="flow">
         <div class="box">Agente</div><span class="arrow">→</span>
@@ -336,7 +336,7 @@
         <div class="box">Gemini<br><span class="small">GEMINI_API_KEY</span></div>
       </div>
       <p class="lede" style="margin-top:1rem">No hay vector store. El grafo se carga al iniciar la API. La UI solo pega JSON a <code>/chat</code>.</p>
-      <div class="script" data-text="El usuario escribe en Streamlit. La UI llama a POST /chat. FastAPI delega en answer(). El agente es un ReAct de LangGraph con Gemini y una sola herramienta, sparql_query. Docker Compose pasa GEMINI_API_KEY a la API. El grafo nunca sale de la memoria del proceso de la API."></div>
+      <div class="script" data-text="El usuario escribe en Streamlit. La UI llama a POST /chat. FastAPI delega en answer(). El agente usa Gemini y una sola herramienta, sparql_query, una vez por pregunta. Docker Compose pasa GEMINI_API_KEY a la API. El grafo nunca sale de la memoria del proceso de la API."></div>
     </section>
 
     <!-- 10 -->
@@ -347,9 +347,9 @@
         <div class="card"><h3>1. Prompt</h3><p>Clases, propiedades, plantillas SPARQL y tabla de nombres Mondial. Regla: consultá antes de responder.</p></div>
         <div class="card"><h3>2. SELECT</h3><p>El modelo escribe un <code>SELECT</code> que empieza con <code>PREFIX mon:</code>. Un triple = tres términos.</p></div>
         <div class="card"><h3>3. Tool</h3><p>Normaliza el PREFIX, reescribe aliases (Alemania→Germany, Danubio→Donau) y ejecuta.</p></div>
-        <div class="card"><h3>4. Respuesta</h3><p>Hasta 50 filas. El modelo redacta en español solo con eso. Si hay cero filas, reintenta.</p></div>
+        <div class="card"><h3>4. Respuesta</h3><p>Hasta 50 filas. El modelo redacta en español solo con eso. Si hay cero filas, falla.</p></div>
       </div>
-      <p class="small" style="margin-top:0.9rem">Si SPARQL falla o viene vacío, la tool devuelve una pista con las plantillas de vecinos, ríos y rankings — no un silencio mudo.</p>
+      <p class="small" style="margin-top:0.9rem">Una sola consulta SPARQL por pregunta. Si falla o viene vacía, la respuesta es que no hay dato en el grafo.</p>
       <div class="script" data-text="Este es el corazón del RAG. El system prompt obliga a ejecutar la tool y da plantillas fijas para vecinos, ubicación de un río y ranking por largo. La tool no es un pasamanos tonto: corrige el PREFIX si faltan los ángulos y canjea literales al nombre canónico del grafo. El techo es cincuenta filas. La respuesta final tiene que ser breve, en español, y nunca volcar el JSON de la tool-call."></div>
     </section>
 
@@ -372,7 +372,7 @@
           <ul>
             <li>El LLM tiene que escribir SPARQL válido</li>
             <li>Los literales de <code>name</code> son frágiles</li>
-            <li>Por eso: plantillas, aliases y pistas de reintento</li>
+            <li>Por eso: plantillas y aliases de nombres</li>
             <li>Debug: descomentar el <code>print</code> en <code>graph.py</code></li>
           </ul>
         </div>

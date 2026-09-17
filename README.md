@@ -55,7 +55,6 @@ Otro modelo: `MODEL=gemini-3-flash`. `GET /health` responde `llm` y `model`.
 ## Correr con Docker Compose (camino principal)
 
 ```bash
-cd TP
 docker compose up --build
 ```
 
@@ -71,7 +70,11 @@ Ejemplos de preguntas:
 
 ## Desarrollo con Dev Container
 
-El proyecto incluye `.devcontainer/devcontainer.json`, que reutiliza el mismo `docker-compose.yml` (servicio `dev`). Al abrir la carpeta en el Dev Container se instalan las dependencias de `server/` y `ui/`.
+El Dev Container usa la imagen de Python de `.devcontainer/` (no el `docker-compose.yml` de `api`/`ui`). Las dependencias de `server/` y `ui/` ya vienen instaladas en esa imagen.
+
+Después de `Container started` hay que esperar: Cursor está bajando el server del IDE adentro del contenedor (el aviso de `$BASE_IMAGE` se puede ignorar). El progreso está en Output → **Dev Containers**, no en esa línea.
+
+Si hace falta reconstruir: Command Palette → **Dev Containers: Rebuild Container**.
 
 Definí `GEMINI_API_KEY` en `.env` o en la terminal antes de arrancar la API.
 
@@ -82,14 +85,13 @@ Con la key de Gemini, desde una terminal del contenedor:
 API (FastAPI):
 
 ```bash
-cd /workspace
 uvicorn server.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 UI (Streamlit), en otra terminal:
 
 ```bash
-cd /workspace/ui
+cd ui
 API_URL=http://localhost:8000 streamlit run app.py --server.port 8501 --server.address 0.0.0.0
 ```
 

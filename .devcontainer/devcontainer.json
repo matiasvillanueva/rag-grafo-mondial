@@ -1,9 +1,20 @@
 {
   "name": "Mondial Europe RAG",
-  "dockerComposeFile": "../docker-compose.yml",
-  "service": "dev",
+  "build": {
+    "context": "..",
+    "dockerfile": "Dockerfile"
+  },
   "workspaceFolder": "/workspace",
-  "postCreateCommand": "pip install -r server/requirements.txt -r ui/requirements.txt",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": false,
+  "containerEnv": {
+    "DATA_DIR": "/workspace/data",
+    "API_URL": "http://localhost:8000"
+  },
+  "mounts": [
+    "source=mondial-europe-cursor-server,target=/home/vscode/.cursor-server,type=volume"
+  ],
   "forwardPorts": [8000, 8501],
   "customizations": {
     "vscode": {
