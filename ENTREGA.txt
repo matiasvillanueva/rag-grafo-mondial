@@ -13,14 +13,13 @@ INTEGRANTES
 VIDEO (YouTube)
 ================================================================================
 
-[Completar: pegar aquí la URL pública del video en YouTube]
-
+https://www.youtube.com/watch?v=K1w7oCF35KE
 
 ================================================================================
 REPOSITORIO (Github)
 ================================================================================
 
-[Completar: pegar aquí la URL pública en GH]
+https://github.com/matiasvillanueva/rag-grafo-mondial
 
 ================================================================================
 ARCHIVOS DE LOS GRAFOS
